@@ -1,6 +1,6 @@
 import React, { Component, createRef } from "react";
 import * as d3 from "d3";
-import { rangeX, rangeY } from "./mock";
+import { dataSourceIntersection, dataSourceLine, rangeX, rangeY } from "./mock";
 
 class HistoricTimeSpace extends Component {
   constructor(props) {
@@ -16,7 +16,7 @@ class HistoricTimeSpace extends Component {
       height: 800,
     };
     this.leftContentConfig = {
-      width: 480,
+      width: 300,
       paddingX: 16,
       paddingY: 16,
     };
@@ -105,6 +105,112 @@ class HistoricTimeSpace extends Component {
       );
     });
   };
+  drawLineData = () => {
+    this.ctx.fillStyle = "black";
+    dataSourceLine.forEach((line) => {
+      const lineCtx = d3
+        .line()
+        .x((d) => this.xScale(d.x))
+        .y((d) => this.yScale(d.y))
+        .context(this.ctx);
+      //draw first line infomation
+      this.ctx.beginPath();
+      const firtLine = line[0];
+      lineCtx([
+        { x: 0, y: firtLine.range[0].y - 5 },
+        { x: firtLine.range[0].x, y: firtLine.range[0].y - 5 },
+      ]);
+      this.ctx.lineWidth = 1;
+      this.ctx.strokeStyle = "black";
+      this.ctx.stroke();
+      this.ctx.textAlign = "right";
+      this.ctx.textBaseline = "top";
+      this.ctx.fillText(
+        "OffsetTime:" + (firtLine.range[1].x - firtLine.range[0].x),
+        this.xScale(firtLine.range[0].x - 5),
+        this.yScale(firtLine.range[0].y - 10)
+      );
+      this.ctx.closePath();
+
+      //draw all line
+      line.forEach((linePart) => {
+        this.ctx.beginPath();
+        lineCtx(linePart.range);
+        this.ctx.lineWidth = 20;
+        this.ctx.strokeStyle = linePart.color;
+        this.ctx.stroke();
+        this.ctx.textAlign = "center";
+        this.ctx.textBaseline = "middle";
+        this.ctx.fillStyle = "black";
+        this.ctx.fillText(
+          linePart.range[1].x - linePart.range[0].x,
+          this.xScale((linePart.range[1].x + linePart.range[0].x) / 2),
+          this.yScale(linePart.range[0].y)
+        );
+        this.ctx.closePath();
+      });
+    });
+  };
+  drawIntersectionInfo = () => {
+    dataSourceIntersection.forEach((int) => {
+      this.ctx.beginPath();
+      this.ctx.textAlign = "center";
+      this.ctx.font = "20px Arial";
+      this.ctx.textBaseline = "top";
+      this.ctx.fillText(
+        int.name,
+        this.leftContentConfig.width / 2,
+        this.yScale(int.distance)
+      );
+      this.ctx.font = "12px Arial";
+      this.ctx.fillText(
+        "Distance:" + int.distance,
+        this.leftContentConfig.width / 2,
+        this.yScale(int.distance) + 20
+      );
+      this.ctx.fillText(
+        "Offset:" + int.offset,
+        this.leftContentConfig.width / 2,
+        this.yScale(int.distance) + 40
+      );
+      this.ctx.fillText(
+        "Cycle:" + int.cycle,
+        this.leftContentConfig.width / 2,
+        this.yScale(int.distance) + 60
+      );
+      this.ctx.closePath();
+    });
+  };
+  drawTimeSpaceLine = () => {
+    var area = d3
+      .area()
+      .x0((d) => {
+        return this.xScale(d.x1);
+      })
+      .x1((d) => {
+        return this.xScale(d.x2);
+      })
+      .y((d) => {
+        return this.yScale(d.y);
+      }) //<-- y1
+      .context(this.ctx);
+    this.ctx.beginPath();
+    area([
+      {
+        x1: 40,
+        x2: 80,
+        y: 20,
+      },
+      {
+        x1: 100,
+        x2: 200,
+        y: 80,
+      },
+    ]);
+    this.ctx.fillStyle = "#D1E9FF";
+    this.ctx.fill();
+    this.ctx.closePath();
+  };
   componentDidMount() {
     var base = d3.select(this.chartRef.current);
     this.graphicConfig.width = this.chartRef.current.offsetWidth - 64;
@@ -114,8 +220,12 @@ class HistoricTimeSpace extends Component {
       .attr("width", this.graphicConfig.width)
       .attr("height", this.graphicConfig.height);
     this.ctx = chart.node().getContext("2d");
+
     this.drawXaxis(rangeX);
     this.drawYaxis(rangeY);
+    this.drawTimeSpaceLine();
+    this.drawLineData();
+    this.drawIntersectionInfo();
   }
   render() {
     return <div ref={this.chartRef} className="w-full h-full"></div>;
