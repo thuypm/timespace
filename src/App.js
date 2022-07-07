@@ -1,10 +1,11 @@
 import "./App.css";
-import HistoricTimeSpace from "./HistoricTimeSpace";
+import Chart from "./Chart";
 
 function App() {
   return (
     <div className="App">
-      <HistoricTimeSpace />
+      {/* <HistoricTimeSpace /> */}
+      <Chart />
     </div>
   );
 }

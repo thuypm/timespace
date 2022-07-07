@@ -220,7 +220,7 @@ class HistoricTimeSpace extends Component {
     d3.event.preventDefault();
     if (isDown) {
       const x = d3.event.pageX - this.areaRef.current.offsetLeft;
-      const walk = (x - startX) * 3; //scroll-fast
+      const walk = x - startX; //scroll-fast
       if (
         scrollLeft - walk >= 0 &&
         scrollLeft - walk <= this.areaRef.current.scrollWidth
