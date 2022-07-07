@@ -1,7 +1,14 @@
-.App {
+.chart-containter {
   width: 95vw;
   height: 95vh;
+  overflow-x: auto;
+  position: relative;
 }
 .h-full {
   height: 100%;
+}
+.hiddenCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
 }

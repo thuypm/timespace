@@ -1,16 +1,19 @@
 import React, { Component, createRef } from "react";
 import * as d3 from "d3";
 import { dataSourceIntersection, dataSourceLine, rangeX, rangeY } from "./mock";
-
+let startX;
+let scrollLeft;
+let isDown = false;
 class HistoricTimeSpace extends Component {
   constructor(props) {
     super(props);
     this.chartRef = createRef();
+    this.areaRef = createRef();
     this.ctx = null;
     this.xScale = null;
     this.yScale = null;
     this.graphicConfig = {
-      width: 900,
+      width: 1920,
       paddingX: 64,
       paddingY: 32,
       height: 800,
@@ -211,24 +214,95 @@ class HistoricTimeSpace extends Component {
     this.ctx.fill();
     this.ctx.closePath();
   };
+  handleMouseMove = () => {
+    var mouseX = d3.event.layerX || d3.event.offsetX;
+    var mouseY = d3.event.layerY || d3.event.offsety;
+    d3.event.preventDefault();
+    if (isDown) {
+      const x = d3.event.pageX - this.areaRef.current.offsetLeft;
+      const walk = (x - startX) * 3; //scroll-fast
+      console.log(walk);
+      this.areaRef.current.scrollLeft = scrollLeft - walk;
+    }
+
+    this.hoverCtx.clearRect(
+      0,
+      0,
+      this.graphicConfig.width,
+      this.graphicConfig.height
+    );
+    const lineCtx = d3
+      .line()
+      .x((d) => d.x)
+      .y((d) => d.y)
+      .context(this.hoverCtx);
+    this.hoverCtx.beginPath();
+    lineCtx([
+      {
+        x: mouseX,
+        y: 0,
+      },
+      {
+        x: mouseX,
+        y: this.graphicConfig.height,
+      },
+    ]);
+    lineCtx([
+      {
+        x: 0,
+        y: mouseY,
+      },
+      {
+        x: this.graphicConfig.width,
+        y: mouseY,
+      },
+    ]);
+    this.hoverCtx.lineWidth = 1;
+    this.hoverCtx.strokeStyle = "black";
+    this.hoverCtx.stroke();
+    this.hoverCtx.closePath();
+  };
+  handleDrag = () => {
+    isDown = true;
+    startX = d3.event.pageX - this.areaRef.current.offsetLeft;
+    scrollLeft = this.areaRef.current.scrollLeft;
+  };
   componentDidMount() {
     var base = d3.select(this.chartRef.current);
-    this.graphicConfig.width = this.chartRef.current.offsetWidth - 64;
-    this.graphicConfig.height = this.chartRef.current.offsetHeight - 32;
+    // this.graphicConfig.width = this.chartRef.current.offsetWidth - 64;
+    // this.graphicConfig.height = this.chartRef.current.offsetHeight - 32;
     var chart = base
       .append("canvas")
       .attr("width", this.graphicConfig.width)
       .attr("height", this.graphicConfig.height);
     this.ctx = chart.node().getContext("2d");
+    let hiddenCanvas = base
+      .append("canvas")
+      .classed("hiddenCanvas", true)
+      .attr("width", this.graphicConfig.width)
+      .attr("height", this.graphicConfig.height);
 
     this.drawXaxis(rangeX);
     this.drawYaxis(rangeY);
     this.drawTimeSpaceLine();
     this.drawLineData();
     this.drawIntersectionInfo();
+    this.hoverCtx = hiddenCanvas.node().getContext("2d");
+    d3.select(hiddenCanvas.node()).on("mousemove", this.handleMouseMove);
+    d3.select(hiddenCanvas.node()).on("mouseleave", () => {
+      isDown = false;
+    });
+    d3.select(hiddenCanvas.node()).on("mousedown", this.handleDrag);
+    d3.select(hiddenCanvas.node()).on("mouseup", () => {
+      isDown = false;
+    });
   }
   render() {
-    return <div ref={this.chartRef} className="w-full h-full"></div>;
+    return (
+      <div ref={this.areaRef} className="chart-containter">
+        <div ref={this.chartRef}></div>
+      </div>
+    );
   }
 }
 
