@@ -221,8 +221,11 @@ class HistoricTimeSpace extends Component {
     if (isDown) {
       const x = d3.event.pageX - this.areaRef.current.offsetLeft;
       const walk = (x - startX) * 3; //scroll-fast
-      console.log(walk);
-      this.areaRef.current.scrollLeft = scrollLeft - walk;
+      if (
+        scrollLeft - walk >= 0 &&
+        scrollLeft - walk <= this.areaRef.current.scrollWidth
+      )
+        this.areaRef.current.scrollLeft = scrollLeft - walk;
     }
 
     this.hoverCtx.clearRect(
