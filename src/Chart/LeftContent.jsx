@@ -10,28 +10,28 @@ class LeftContent extends Component {
     this.ctx = null;
   }
 
-  drawYaxis = (data) => {
+  drawYaxis = () => {
     const { yScale, config } = this.props;
 
-    const [startY, endY] = [config.paddingY, config.height];
+    const [startY, endY] = [0, config.height];
 
     const tickPadding = 3,
-      tickSize = 6,
+      tickSize = 5,
       yTicks = yScale.ticks(),
       yTickFormat = yScale.tickFormat();
 
     this.ctx.strokeStyle = "black";
     this.ctx.beginPath();
     yTicks.forEach((d) => {
-      this.ctx.moveTo(config.width, yScale(d));
-      this.ctx.lineTo(config.width - tickSize, yScale(d));
+      this.ctx.moveTo(config.width - 2, yScale(d));
+      this.ctx.lineTo(config.width - 2 - tickSize, yScale(d));
     });
     this.ctx.stroke();
 
     this.ctx.beginPath();
     this.ctx.moveTo(config.width - tickSize, startY);
-    this.ctx.lineTo(config.width, startY);
-    this.ctx.lineTo(config.width, endY);
+    this.ctx.lineTo(config.width - 2, startY);
+    this.ctx.lineTo(config.width - 2, endY);
     this.ctx.lineTo(config.width - tickSize, endY);
     this.ctx.stroke();
 
@@ -90,16 +90,34 @@ class LeftContent extends Component {
       .attr("width", config.width)
       .attr("height", config.height);
     this.ctx = chart.node().getContext("2d");
+    this.ctx.imageSmoothingQuality = "high";
   }
   render() {
     const { config } = this.props;
     return (
-      <div
-        ref={this.chartRef}
-        style={{
-          width: config.width,
-          height: config.height,
-        }}></div>
+      <div>
+        <div
+          style={{
+            position: "sticky",
+            height: "min-content",
+            top: 0,
+            left: 0,
+            zIndex: 25,
+
+            background: "white",
+            // width: "calc(100% - 300px)",
+          }}>
+          <div ref={this.axisAreaRef} style={{ height: 50 }}>
+            next prev bsay
+          </div>
+        </div>
+        <div
+          ref={this.chartRef}
+          style={{
+            width: config.width,
+            height: config.height,
+          }}></div>
+      </div>
     );
   }
 }

@@ -5,11 +5,13 @@ import { rangeX, rangeY } from "./mock";
 import RightContent from "./RightContent";
 let startX;
 let scrollLeft;
+let startY;
+let scrollTop;
 let isDown = false;
 class Chart extends Component {
   constructor(props) {
     super(props);
-    this.chartRef = createRef();
+    this.parentRef = createRef();
     this.areaRef = createRef();
     this.leftRef = createRef();
     this.rightRef = createRef();
@@ -28,11 +30,17 @@ class Chart extends Component {
       paddingX: 64,
       paddingY: 51,
     };
+    this.currentViewConfig = {
+      width: 300,
+      height: 800,
+      paddingX: 64,
+      paddingY: 51,
+    };
     this.state = {
       ctx: null,
       //   xScale: null,
       //   yScale: null,
-      //   graphicConfig: {
+      //   currentViewConfig: {
       //     width: 1920,
       //     paddingX: 64,
       //     paddingY: 32,
@@ -57,10 +65,7 @@ class Chart extends Component {
       .domain(d3.extent(rangeX));
     this.yScale = d3
       .scaleLinear()
-      .range([
-        this.leftContentConfig.paddingY,
-        this.leftContentConfig.height - 20,
-      ])
+      .range([0, this.leftContentConfig.height])
       .domain(d3.extent(rangeY));
   };
 
@@ -69,20 +74,30 @@ class Chart extends Component {
     var mouseY = d3.event.layerY || d3.event.offsety;
     d3.event.preventDefault();
     if (isDown) {
-      const x = d3.event.pageX - this.areaRef.current.offsetLeft;
-      const walk = x - startX; //scroll-fast
+      const scrollXEl = this.rightRef.current.axisScroll.current;
+      const x = d3.event.pageX - scrollXEl.offsetLeft;
+      const walkX = x - startX; //scroll-fast
+
+      const y = d3.event.pageY - scrollXEl.offsetTop;
+      const walkY = y - startY; //scroll-fast
       if (
-        scrollLeft - walk >= 0 &&
-        scrollLeft - walk <= this.areaRef.current.scrollWidth
+        scrollLeft - walkX >= 0 &&
+        scrollLeft - walkX <= scrollXEl.scrollWidth
+      ) {
+        scrollXEl.scrollLeft = scrollLeft - walkX;
+      }
+      if (
+        scrollTop - walkY >= 0 &&
+        scrollTop - walkY <= this.parentRef.current.scrollHeight
       )
-        this.areaRef.current.scrollLeft = scrollLeft - walk;
+        this.parentRef.current.scrollTop = (scrollTop - walkY) / 2;
     }
 
     this.hoverCtx.clearRect(
       0,
       0,
-      this.graphicConfig.width,
-      this.graphicConfig.height
+      this.currentViewConfig.width,
+      this.currentViewConfig.height
     );
     const lineCtx = d3
       .line()
@@ -97,7 +112,7 @@ class Chart extends Component {
       },
       {
         x: mouseX,
-        y: this.graphicConfig.height,
+        y: this.currentViewConfig.height,
       },
     ]);
     lineCtx([
@@ -106,7 +121,7 @@ class Chart extends Component {
         y: mouseY,
       },
       {
-        x: this.graphicConfig.width,
+        x: this.currentViewConfig.width,
         y: mouseY,
       },
     ]);
@@ -117,46 +132,46 @@ class Chart extends Component {
   };
   handleDrag = () => {
     isDown = true;
-    startX = d3.event.pageX - this.areaRef.current.offsetLeft;
-    scrollLeft = this.areaRef.current.scrollLeft;
+    const scrollXEl = this.rightRef.current.axisScroll.current;
+    startX = d3.event.pageX - scrollXEl.offsetLeft;
+    scrollLeft = scrollXEl.scrollLeft;
+
+    startY = d3.event.pageY - this.parentRef.current.offsetTop;
+    scrollTop = this.parentRef.current.scrollTop;
   };
   componentDidMount() {
-    var base = d3.select(this.chartRef.current);
+    var base = d3.select(this.areaRef.current);
     // var chart = base
     //   .append("canvas")
-    //   .attr("width", this.graphicConfig.width)
-    //   .attr("height", this.graphicConfig.height);
+    //   .attr("width", this.currentViewConfig.width)
+    //   .attr("height", this.currentViewConfig.height);
     // this.setState({
     //   ctx: chart.node().getContext("2d"),
     // });
-    // let hiddenCanvas = base
-    //   .append("canvas")
-    //   .classed("hiddenCanvas", true)
-    //   .attr(
-    //     "width",
-    //     this.leftContentConfig.width + this.rightContentConfig.width
-    //   )
-    //   .attr("height", this.leftContentConfig.height);
+    this.currentViewConfig.width = this.areaRef.current.offsetWidth;
+    // this.currentViewConfig.height = this.areaRef.current.height;
+
+    let hiddenCanvas = base
+      .append("canvas")
+      .classed("hiddenCanvas", true)
+      .attr("width", this.currentViewConfig.width)
+      .attr("height", this.currentViewConfig.height);
     this.leftRef.current?.drawContent();
     this.rightRef.current?.drawContent();
-    // this.drawXaxis(rangeX);
-    // this.drawYaxis(rangeY);
-    // this.drawTimeSpaceLine();
-    // this.drawLineData();
-    // this.drawIntersectionInfo();
-    // this.hoverCtx = hiddenCanvas.node().getContext("2d");
-    // d3.select(hiddenCanvas.node()).on("mousemove", this.handleMouseMove);
-    // d3.select(hiddenCanvas.node()).on("mouseleave", () => {
-    //   isDown = false;
-    // });
-    // d3.select(hiddenCanvas.node()).on("mousedown", this.handleDrag);
-    // d3.select(hiddenCanvas.node()).on("mouseup", () => {
-    //   isDown = false;
-    // });
+    this.hoverCtx = hiddenCanvas.node().getContext("2d");
+    d3.select(hiddenCanvas.node()).on("mousemove", this.handleMouseMove);
+    d3.select(hiddenCanvas.node()).on("mouseleave", () => {
+      isDown = false;
+    });
+    d3.select(hiddenCanvas.node()).on("mousedown", this.handleDrag);
+    d3.select(hiddenCanvas.node()).on("mouseup", () => {
+      isDown = false;
+    });
   }
   render() {
     return (
-      <div ref={this.areaRef} className="chart-containter">
+      <div ref={this.parentRef} className="chart-containter">
+        <div ref={this.areaRef} className="hiddenContent"></div>
         {/* <div
           ref={this.chartRef}
           style={{

@@ -1,12 +1,13 @@
 import * as d3 from "d3";
 import { Component, createRef } from "react";
-import { dataSourceLine } from "./mock";
+import { dataSourceLine, rangeX } from "./mock";
 
 class RightContent extends Component {
   constructor(props) {
     super(props);
     this.chartRef = createRef();
     this.axisAreaRef = createRef();
+    this.axisScroll = createRef();
   }
 
   drawXaxis = () => {
@@ -128,27 +129,43 @@ class RightContent extends Component {
     this.ctx.closePath();
   };
   drawContent = () => {
-    this.drawXaxis();
+    // this.drawXaxis();
     this.drawTimeSpaceLine();
     this.drawLineData();
+    this.renderBrush();
   };
   componentDidMount() {
     const { rightConfig } = this.props;
     var base = d3.select(this.chartRef.current);
     var chart = base
       .append("canvas")
-
       .attr("width", rightConfig.width)
       .attr("height", rightConfig.height);
     this.ctx = chart.node().getContext("2d");
-    var axisComponent = d3.select(this.axisAreaRef.current);
-    var axis = axisComponent
-      .append("canvas")
-      .style("tranform", "rotateX(180deg)")
-      .attr("width", rightConfig.width)
-      .attr("height", 40);
-    this.axisCtx = axis.node().getContext("2d");
+    this.ctx.imageSmoothingQuality = "high";
+    this.svg = d3.select(this.axisAreaRef.current);
+    // var axisComponent = d3.select(this.axisAreaRef.current);
+    // var axis = axisComponent
+    //   .append("canvas")
+    //   .style("tranform", "rotateX(180deg)")
+    //   .attr("width", rightConfig.width)
+    //   .attr("height", 40);
+    // this.axisCtx = axis.node().getContext("2d");
   }
+  renderBrush = () => {
+    var brush = d3
+      .brushX()
+      .extent([
+        [0, 0],
+        [this.axisScroll.current.offsetWidth, 40],
+      ])
+      .on("brush end", () => {});
+    this.svg
+      .append("g")
+      .attr("class", "brush")
+      .call(brush)
+      .call(brush.move, rangeX);
+  };
   render() {
     const { rightConfig } = this.props;
     return (
@@ -159,19 +176,23 @@ class RightContent extends Component {
             height: "min-content",
             top: 0,
             left: 300,
-            transform: "rotateX(180deg)",
+            zIndex: 25,
+            // transform: "rotateX(180deg)",
             background: "white",
             // width: "calc(100% - 300px)",
             overflowX: "auto",
           }}
-          onScroll={(e) => {
-            // console.log(e.target.scrollLeft);
-            // console.log(this.chartRef.current.scrollLeft);
-            this.chartRef.current.scrollLeft = e.target.scrollLeft;
-          }}>
-          <div
+          ref={this.axisScroll}
+          // onScroll={(e) => {
+          //   // console.log(e.target.scrollLeft);
+          //   // console.log(this.chartRef.current.scrollLeft);
+          //   this.chartRef.current.scrollLeft = e.target.scrollLeft;
+          // }}
+        >
+          <svg width="100%" height="40" ref={this.axisAreaRef}></svg>
+          {/* <div
             ref={this.axisAreaRef}
-            style={{ transform: "rotateX(180deg)", width: "100%" }}></div>
+            style={{ transform: "rotateX(180deg)", width: "100%" }}></div> */}
         </div>
         <div
           style={{
