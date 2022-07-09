@@ -74,18 +74,14 @@ class Chart extends Component {
     var mouseY = d3.event.layerY || d3.event.offsety;
     d3.event.preventDefault();
     if (isDown) {
-      const scrollXEl = this.rightRef.current.axisScroll.current;
+      const scrollXEl = this.rightRef.current.axisAreaRef.current;
       const x = d3.event.pageX - scrollXEl.offsetLeft;
       const walkX = x - startX; //scroll-fast
-
-      const y = d3.event.pageY - scrollXEl.offsetTop;
+      this.rightRef.current.handleBrushZoom(
+        walkX / (scrollXEl.scrollWidth - scrollXEl.clientWidth)
+      );
+      const y = d3.event.pageY - this.parentRef.current.offsetTop;
       const walkY = y - startY; //scroll-fast
-      if (
-        scrollLeft - walkX >= 0 &&
-        scrollLeft - walkX <= scrollXEl.scrollWidth
-      ) {
-        scrollXEl.scrollLeft = scrollLeft - walkX;
-      }
       if (
         scrollTop - walkY >= 0 &&
         scrollTop - walkY <= this.parentRef.current.scrollHeight
@@ -132,7 +128,7 @@ class Chart extends Component {
   };
   handleDrag = () => {
     isDown = true;
-    const scrollXEl = this.rightRef.current.axisScroll.current;
+    const scrollXEl = this.rightRef.current.axisAreaRef.current;
     startX = d3.event.pageX - scrollXEl.offsetLeft;
     scrollLeft = scrollXEl.scrollLeft;
 

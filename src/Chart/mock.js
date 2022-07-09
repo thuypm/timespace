@@ -1,4 +1,4 @@
-export const rangeX = [0, 300];
+export const rangeX = [0, 500];
 export const rangeY = [0, 200];
 
 export const dataSourceLine = [
@@ -160,6 +160,88 @@ export const dataSourceLine = [
         {
           x: 310,
           y: 80,
+        },
+      ],
+    },
+  ],
+
+  [
+    {
+      color: "red",
+      range: [
+        {
+          x: 20,
+          y: 120,
+        },
+        {
+          x: 120,
+          y: 120,
+        },
+      ],
+    },
+    {
+      color: "green",
+      range: [
+        {
+          x: 120,
+          y: 120,
+        },
+        {
+          x: 200,
+          y: 120,
+        },
+      ],
+    },
+    {
+      color: "yellow",
+      range: [
+        {
+          x: 200,
+          y: 120,
+        },
+        {
+          x: 210,
+          y: 120,
+        },
+      ],
+    },
+
+    {
+      color: "red",
+      range: [
+        {
+          x: 210,
+          y: 120,
+        },
+        {
+          x: 220,
+          y: 120,
+        },
+      ],
+    },
+    {
+      color: "green",
+      range: [
+        {
+          x: 220,
+          y: 120,
+        },
+        {
+          x: 300,
+          y: 120,
+        },
+      ],
+    },
+    {
+      color: "yellow",
+      range: [
+        {
+          x: 300,
+          y: 120,
+        },
+        {
+          x: 310,
+          y: 120,
         },
       ],
     },

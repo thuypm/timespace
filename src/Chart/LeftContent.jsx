@@ -1,3 +1,4 @@
+import { Button } from "antd";
 import * as d3 from "d3";
 import { Component, createRef } from "react";
 import { dataSourceIntersection } from "./mock";
@@ -40,11 +41,18 @@ class LeftContent extends Component {
     this.ctx.fillStyle = "black";
     yTicks.forEach((d) => {
       this.ctx.beginPath();
-      this.ctx.fillText(
-        yTickFormat(d),
-        config.width - tickSize - tickPadding,
-        yScale(d)
-      );
+      if (d)
+        this.ctx.fillText(
+          yTickFormat(d),
+          config.width - tickSize - tickPadding,
+          yScale(d)
+        );
+      else
+        this.ctx.fillText(
+          yTickFormat(d),
+          config.width - tickSize - tickPadding,
+          yScale(d + 1)
+        );
     });
   };
 
@@ -103,12 +111,30 @@ class LeftContent extends Component {
             top: 0,
             left: 0,
             zIndex: 25,
-
-            background: "white",
+            background: "transparent",
             // width: "calc(100% - 300px)",
           }}>
-          <div ref={this.axisAreaRef} style={{ height: 50 }}>
-            next prev bsay
+          <div
+            ref={this.axisAreaRef}
+            style={{ height: 40, width: "100%", display: "flex" }}>
+            <Button
+              style={{ borderRadius: "0", width: "100%" }}
+              icon="step-backward"></Button>
+            <Button
+              style={{ borderRadius: "0", width: "100%" }}
+              icon="backward"></Button>
+            <Button
+              style={{ borderRadius: "0", width: "100%" }}
+              icon="caret-left"></Button>
+            <Button
+              style={{ borderRadius: "0", width: "100%" }}
+              icon="caret-right"></Button>
+            <Button
+              style={{ borderRadius: "0", width: "100%" }}
+              icon="forward"></Button>
+            <Button
+              style={{ borderRadius: "0", width: "100%" }}
+              icon="step-forward"></Button>
           </div>
         </div>
         <div

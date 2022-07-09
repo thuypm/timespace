@@ -6,8 +6,9 @@ class RightContent extends Component {
   constructor(props) {
     super(props);
     this.chartRef = createRef();
-    this.axisAreaRef = createRef();
+    this.brushRef = createRef();
     this.axisScroll = createRef();
+    this.axisAreaRef = createRef();
   }
 
   drawXaxis = () => {
@@ -19,15 +20,15 @@ class RightContent extends Component {
     this.axisCtx.strokeStyle = "black";
     this.axisCtx.beginPath();
     xTicks.forEach((d) => {
-      this.axisCtx.moveTo(xScale(d), rightConfig.paddingY);
-      this.axisCtx.lineTo(xScale(d), rightConfig.paddingY + tickSize);
+      this.axisCtx.moveTo(xScale(d), 15);
+      this.axisCtx.lineTo(xScale(d), 15 + tickSize);
     });
     this.axisCtx.stroke();
     this.axisCtx.beginPath();
-    this.axisCtx.moveTo(startX, rightConfig.paddingY + tickSize);
-    this.axisCtx.lineTo(startX, rightConfig.paddingY);
-    this.axisCtx.lineTo(endX, rightConfig.paddingY);
-    this.axisCtx.lineTo(endX, rightConfig.paddingY + tickSize);
+    this.axisCtx.moveTo(startX, 15 + tickSize);
+    this.axisCtx.lineTo(startX, 15);
+    this.axisCtx.lineTo(endX, 15);
+    this.axisCtx.lineTo(endX, 15 + tickSize);
     this.axisCtx.stroke();
 
     this.axisCtx.textAlign = "center";
@@ -36,12 +37,14 @@ class RightContent extends Component {
     // this.axisCtx.rotate(-Math.PI / 2);
     xTicks.forEach((d) => {
       this.axisCtx.beginPath();
-
-      this.axisCtx.fillText(
-        xTickFormat(d),
-        xScale(d),
-        rightConfig.paddingY - 3 * tickSize
-      );
+      if (d)
+        this.axisCtx.fillText(xTickFormat(d), xScale(d), 18 - 3 * tickSize);
+      else
+        this.axisCtx.fillText(
+          xTickFormat(d),
+          xScale(d + 0.5),
+          18 - 3 * tickSize
+        );
       this.axisCtx.closePath();
     });
 
@@ -55,7 +58,7 @@ class RightContent extends Component {
       const lineCtx = d3
         .line()
         .x((d) => xScale(d.x))
-        .y((d) => yScale(d.y))
+        .y((d) => yScale(d.y) - 22)
         .context(this.ctx);
       //draw first line infomation
       this.ctx.beginPath();
@@ -89,7 +92,33 @@ class RightContent extends Component {
         this.ctx.fillText(
           linePart.range[1].x - linePart.range[0].x,
           xScale((linePart.range[1].x + linePart.range[0].x) / 2),
-          yScale(linePart.range[0].y)
+          yScale(linePart.range[0].y) - 22
+        );
+        this.ctx.closePath();
+      });
+    });
+    dataSourceLine.forEach((line) => {
+      const lineCtx = d3
+        .line()
+        .x((d) => xScale(d.x))
+        .y((d) => yScale(d.y) + 2)
+        .context(this.ctx);
+      //draw first line infomation
+
+      //draw all line
+      line.forEach((linePart) => {
+        this.ctx.beginPath();
+        lineCtx(linePart.range);
+        this.ctx.lineWidth = 20;
+        this.ctx.strokeStyle = linePart.color;
+        this.ctx.stroke();
+        this.ctx.textAlign = "center";
+        this.ctx.textBaseline = "middle";
+        this.ctx.fillStyle = "black";
+        this.ctx.fillText(
+          linePart.range[1].x - linePart.range[0].x,
+          xScale((linePart.range[1].x + linePart.range[0].x) / 2),
+          yScale(linePart.range[0].y) + 2
         );
         this.ctx.closePath();
       });
@@ -108,7 +137,7 @@ class RightContent extends Component {
         return xScale(d.x2);
       })
       .y((d) => {
-        return yScale(d.y);
+        return yScale(d.y) - 10;
       }) //<-- y1
       .context(this.ctx);
     this.ctx.beginPath();
@@ -127,9 +156,26 @@ class RightContent extends Component {
     this.ctx.fillStyle = "#D1E9FF";
     this.ctx.fill();
     this.ctx.closePath();
+    this.ctx.beginPath();
+
+    area([
+      {
+        x1: 200,
+        x2: 300,
+        y: 20,
+      },
+      {
+        x1: 150,
+        x2: 220,
+        y: 80,
+      },
+    ]);
+    this.ctx.fillStyle = "#616a6b";
+    this.ctx.fill();
+    this.ctx.closePath();
   };
   drawContent = () => {
-    // this.drawXaxis();
+    this.drawXaxis();
     this.drawTimeSpaceLine();
     this.drawLineData();
     this.renderBrush();
@@ -143,28 +189,64 @@ class RightContent extends Component {
       .attr("height", rightConfig.height);
     this.ctx = chart.node().getContext("2d");
     this.ctx.imageSmoothingQuality = "high";
-    this.svg = d3.select(this.axisAreaRef.current);
-    // var axisComponent = d3.select(this.axisAreaRef.current);
-    // var axis = axisComponent
-    //   .append("canvas")
-    //   .style("tranform", "rotateX(180deg)")
-    //   .attr("width", rightConfig.width)
-    //   .attr("height", 40);
-    // this.axisCtx = axis.node().getContext("2d");
+    this.svg = d3.select(this.brushRef.current);
+    var axisComponent = d3.select(this.axisAreaRef.current);
+    var axis = axisComponent
+      .append("canvas")
+      .attr("width", rightConfig.width)
+      .attr("height", 20);
+    this.axisCtx = axis.node().getContext("2d");
   }
   renderBrush = () => {
-    var brush = d3
+    this.currentBrushRange = [0, 0];
+    this.brushObject = d3
       .brushX()
       .extent([
         [0, 0],
-        [this.axisScroll.current.offsetWidth, 40],
+        [this.axisScroll.current.offsetWidth, 10],
       ])
-      .on("brush end", () => {});
-    this.svg
+      .on("brush end", () => {
+        // console.log(this.axisScroll.current.offsetWidth, d3.event.selection[0]);
+        const ratio =
+          d3.event.selection[0] /
+          (this.axisScroll.current.offsetWidth +
+            d3.event.selection[0] -
+            d3.event.selection[1]);
+        this.axisAreaRef.current.scrollLeft =
+          ratio *
+          (this.axisAreaRef.current.scrollWidth -
+            this.axisAreaRef.current.clientWidth);
+        this.chartRef.current.scrollLeft =
+          ratio *
+          (this.chartRef.current.scrollWidth -
+            this.chartRef.current.clientWidth);
+      });
+    this.brush = this.svg
       .append("g")
       .attr("class", "brush")
-      .call(brush)
-      .call(brush.move, rangeX);
+      .call(this.brushObject)
+      .call(this.brushObject.move, rangeX);
+    console.log(this.brush);
+    // this.brush.call(brush.move, [100, 300]);
+  };
+  handleBrushZoom = (walk) => {
+    const currentBrushRange = [
+      Number(this.brush.select(".selection").attr("x")),
+      Number(this.brush.select(".selection").attr("x")) +
+        Number(this.brush.select(".selection").attr("width")),
+    ];
+    const change = (walk * this.axisScroll.current.offsetWidth) / 20;
+    if (
+      currentBrushRange[0] - change >= 0 &&
+      currentBrushRange[0] - change <=
+        this.axisScroll.current.offsetWidth -
+          Number(this.brush.select(".selection").attr("width"))
+    ) {
+      this.brush.call(this.brushObject.move, [
+        currentBrushRange[0] - change,
+        currentBrushRange[1] - change,
+      ]);
+    }
   };
   render() {
     const { rightConfig } = this.props;
@@ -177,26 +259,17 @@ class RightContent extends Component {
             top: 0,
             left: 300,
             zIndex: 25,
-            // transform: "rotateX(180deg)",
             background: "white",
-            // width: "calc(100% - 300px)",
-            overflowX: "auto",
           }}
-          ref={this.axisScroll}
-          // onScroll={(e) => {
-          //   // console.log(e.target.scrollLeft);
-          //   // console.log(this.chartRef.current.scrollLeft);
-          //   this.chartRef.current.scrollLeft = e.target.scrollLeft;
-          // }}
-        >
-          <svg width="100%" height="40" ref={this.axisAreaRef}></svg>
+          ref={this.axisScroll}>
+          <svg width="100%" height="16" ref={this.brushRef}></svg>
+          <div style={{ overflowX: "hidden" }} ref={this.axisAreaRef}></div>
           {/* <div
             ref={this.axisAreaRef}
             style={{ transform: "rotateX(180deg)", width: "100%" }}></div> */}
         </div>
         <div
           style={{
-            // width: "calc(100% - 300px)",
             height: rightConfig.height,
             overflowX: "hidden",
             overflowY: "hidden",

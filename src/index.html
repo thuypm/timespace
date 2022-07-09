@@ -1,181 +1,175 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Canvas Scatterplot</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://d3js.org/d3.v4.js"></script>
-    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
-    <script src="https://d3js.org/d3-scale.v1.min.js"></script>
+<meta charset="utf-8" />
+<style>
+  .area {
+    fill: steelblue;
+    clip-path: url(#clip);
+  }
 
-    <style type="text/css">
-      .hiddenCanvas {
-        display: none;
-      }
+  .zoom {
+    cursor: move;
+    fill: none;
+    pointer-events: all;
+  }
+</style>
+<svg width="960" height="500"></svg>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+  var svg = d3.select("svg"),
+    margin = { top: 20, right: 20, bottom: 110, left: 40 },
+    margin2 = { top: 430, right: 20, bottom: 30, left: 40 },
+    width = +svg.attr("width") - margin.left - margin.right,
+    height = +svg.attr("height") - margin.top - margin.bottom,
+    height2 = +svg.attr("height") - margin2.top - margin2.bottom;
 
-      div#tooltip {
-        position: absolute;
-        display: inline-block;
-        padding: 10px;
-        font-family: "Open Sans" sans-serif;
-        color: #000;
-        background-color: #fff;
-        border: 1px solid #999;
-        border-radius: 2px;
-        pointer-events: none;
-        opacity: 0;
-        z-index: 1;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="container"></div>
-    <div id="tooltip"></div>
+  var parseDate = d3.timeParse("%b %Y");
 
-    <script type="text/javascript">
-      var data = [];
-      d3.range(20000).forEach(function (el) {
-        data.push({
-          x: d3.randomNormal(5, 3)(),
-          y: d3.randomNormal(5, 3)(),
-          r: d3.randomNormal(3, 1)(),
-        });
-      });
-      console.log(data);
+  var x = d3.scaleTime().range([0, width]),
+    x2 = d3.scaleTime().range([0, width]),
+    y = d3.scaleLinear().range([height, 0]),
+    y2 = d3.scaleLinear().range([height2, 0]);
 
-      var width = 1400,
-        height = 750;
+  var xAxis = d3.axisBottom(x),
+    xAxis2 = d3.axisBottom(x2),
+    yAxis = d3.axisLeft(y);
 
-      // main canvas
-      var mainCanvas = d3
-        .select("#container")
-        .append("canvas")
-        .classed("mainCanvas", true)
-        .attr("width", width)
-        .attr("height", height);
+  var brush = d3
+    .brushX()
+    .extent([
+      [0, 0],
+      [width, height2],
+    ])
+    .on("brush end", brushed);
 
-      // hidden canvas
-      var hiddenCanvas = d3
-        .select("#container")
-        .append("canvas")
-        .classed("hiddenCanvas", true)
-        .attr("width", width)
-        .attr("height", height);
+  var zoom = d3
+    .zoom()
+    .scaleExtent([1, Infinity])
+    .translateExtent([
+      [0, 0],
+      [width, height],
+    ])
+    .extent([
+      [0, 0],
+      [width, height],
+    ])
+    .on("zoom", zoomed);
 
-      var customBase = document.createElement("custom");
-      var custom = d3.select(customBase); // replacement of SVG
+  var area = d3
+    .area()
+    .curve(d3.curveMonotoneX)
+    .x(function (d) {
+      return x(d.date);
+    })
+    .y0(height)
+    .y1(function (d) {
+      return y(d.price);
+    });
 
-      // map to track color the nodes.
-      var colorToNode = {};
-      // function to create new colors for picking
-      var nextCol = 1;
-      function genColor() {
-        var ret = [];
-        if (nextCol < 16777215) {
-          ret.push(nextCol & 0xff); //R
-          ret.push((nextCol & 0xff00) >> 8); //G
-          ret.push((nextCol & 0xff0000) >> 16); //B
+  var area2 = d3
+    .area()
+    .curve(d3.curveMonotoneX)
+    .x(function (d) {
+      return x2(d.date);
+    })
+    .y0(height2)
+    .y1(function (d) {
+      return y2(d.price);
+    });
 
-          nextCol += 1;
-        }
-        var col = "rgb(" + ret.join(",") + ")";
-        return col;
-      }
+  svg
+    .append("defs")
+    .append("clipPath")
+    .attr("id", "clip")
+    .append("rect")
+    .attr("width", width)
+    .attr("height", height);
 
-      var x = d3.scaleLinear().domain([2, 8]).range([0, width]);
+  var focus = svg
+    .append("g")
+    .attr("class", "focus")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-      var y = d3.scaleLinear().domain([2, 8]).range([height, 0]);
+  var context = svg
+    .append("g")
+    .attr("class", "context")
+    .attr("transform", "translate(" + margin2.left + "," + margin2.top + ")");
 
-      databind(data, x, y);
-      var t = d3.timer(function (elapsed) {
-        draw(mainCanvas, false);
-        if (elapsed > 300) t.stop();
-        // timer running the draw function repeatedly for 300ms.
-      });
+  d3.csv("sp500.csv", type, function (error, data) {
+    if (error) throw error;
 
-      function databind(data, x, y) {
-        var join = custom.selectAll("custon.circle").data(data);
+    x.domain(
+      d3.extent(data, function (d) {
+        return d.date;
+      })
+    );
+    y.domain([
+      0,
+      d3.max(data, function (d) {
+        return d.price;
+      }),
+    ]);
+    x2.domain(x.domain());
+    y2.domain(y.domain());
 
-        var enterSel = join
-          .enter()
-          .append("custom")
-          .attr("class", "circle")
-          .attr("x", function (d, i) {
-            return x(d.x);
-          })
-          .attr("y", function (d, i) {
-            return y(d.y);
-          })
-          .attr("r", function (d, i) {
-            return Math.abs(d.r);
-          });
+    focus.append("path").datum(data).attr("class", "area").attr("d", area);
 
-        join
-          .merge(enterSel)
-          .transition()
-          .attr("fillStyleHidden", function (d) {
-            if (!d.hiddenCol) {
-              d.hiddenCol = genColor();
-              colorToNode[d.hiddenCol] = d;
-            }
-            return d.hiddenCol;
-          });
-      }
+    focus
+      .append("g")
+      .attr("class", "axis axis--x")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
 
-      function draw(canvas, hidden) {
-        var context = canvas.node().getContext("2d");
+    focus.append("g").attr("class", "axis axis--y").call(yAxis);
 
-        context.clearRect(0, 0, width, height);
+    context.append("path").datum(data).attr("class", "area").attr("d", area2);
 
-        var elements = custom.selectAll("custom.circle");
-        elements.each(function (d, i) {
-          var node = d3.select(this);
-          context.fillStyle = hidden
-            ? node.attr("fillStyleHidden")
-            : "steelblue";
-          context.beginPath();
-          context.arc(
-            node.attr("x"),
-            node.attr("y"),
-            node.attr("r"),
-            0,
-            2 * Math.PI
-          );
-          context.fill();
-        });
-      }
+    context
+      .append("g")
+      .attr("class", "axis axis--x")
+      .attr("transform", "translate(0," + height2 + ")")
+      .call(xAxis2);
 
-      d3.select(".mainCanvas").on("mousemove", function () {
-        draw(hiddenCanvas, true);
-        var mouseX = d3.event.layerX || d3.event.offsetX;
-        var mouseY = d3.event.layerY || d3.event.offsety;
+    context
+      .append("g")
+      .attr("class", "brush")
+      .call(brush)
+      .call(brush.move, x.range());
 
-        var hiddenCtx = hiddenCanvas.node().getContext("2d");
-        var col = hiddenCtx.getImageData(mouseX, mouseY, 1, 1).data;
+    svg
+      .append("rect")
+      .attr("class", "zoom")
+      .attr("width", width)
+      .attr("height", height)
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+      .call(zoom);
+  });
 
-        var colKey = "rgb(" + col[0] + "," + col[1] + "," + col[2] + ")";
-        var nodeData = colorToNode[colKey];
+  function brushed() {
+    if (d3.event.sourceEvent && d3.event.sourceEvent.type === "zoom") return; // ignore brush-by-zoom
+    var s = d3.event.selection || x2.range();
+    x.domain(s.map(x2.invert, x2));
+    focus.select(".area").attr("d", area);
+    focus.select(".axis--x").call(xAxis);
+    svg
+      .select(".zoom")
+      .call(
+        zoom.transform,
+        d3.zoomIdentity.scale(width / (s[1] - s[0])).translate(-s[0], 0)
+      );
+  }
 
-        if (nodeData) {
-          console.log(nodeData);
-          d3.select("#tooltip")
-            .style("opacity", 0.8)
-            .style("top", d3.event.pageY + 5 + "px")
-            .style("left", d3.event.pageX + 5 + "px")
-            .html(
-              "x: " +
-                nodeData.x +
-                "<br>" +
-                "y: " +
-                nodeData.y +
-                "<br>" +
-                "radius: " +
-                nodeData.r
-            );
-        } else {
-          d3.select("#tooltip").style("opacity", 0);
-        }
-      });
-    </script>
-  </body>
-</html>
+  function zoomed() {
+    if (d3.event.sourceEvent && d3.event.sourceEvent.type === "brush") return; // ignore zoom-by-brush
+    var t = d3.event.transform;
+    x.domain(t.rescaleX(x2).domain());
+    focus.select(".area").attr("d", area);
+    focus.select(".axis--x").call(xAxis);
+    context.select(".brush").call(brush.move, [100, 300]);
+  }
+
+  function type(d) {
+    d.date = parseDate(d.date);
+    d.price = +d.price;
+    return d;
+  }
+</script>

@@ -1,4 +1,4 @@
-export const rangeX = [0, 300];
+export const rangeX = [0, 500];
 export const rangeY = [0, 200];
 
 export const dataSourceLine = [
