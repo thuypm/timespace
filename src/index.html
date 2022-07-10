@@ -1,175 +1,170 @@
 <!DOCTYPE html>
 <meta charset="utf-8" />
 <style>
-  .area {
-    fill: steelblue;
-    clip-path: url(#clip);
+  body {
+    margin: 0;
+    padding: 0;
+    font: 12px sans-serif;
   }
 
-  .zoom {
-    cursor: move;
+  path,
+  line {
+    shape-rendering: crispEdges;
+  }
+
+  div,
+  svg,
+  canvas {
+    position: absolute;
+  }
+
+  svg {
+    pointer-events: none;
+  }
+
+  .axis path,
+  .axis line {
     fill: none;
-    pointer-events: all;
+    stroke: #000;
+    stroke-width: 1px;
+  }
+
+  circle {
+    stroke-width: 4px;
+    stroke: #000;
+    fill: none;
+  }
+
+  .hidden {
+    display: none;
   }
 </style>
-<svg width="960" height="500"></svg>
-<script src="https://d3js.org/d3.v4.min.js"></script>
-<script>
-  var svg = d3.select("svg"),
-    margin = { top: 20, right: 20, bottom: 110, left: 40 },
-    margin2 = { top: 430, right: 20, bottom: 30, left: 40 },
-    width = +svg.attr("width") - margin.left - margin.right,
-    height = +svg.attr("height") - margin.top - margin.bottom,
-    height2 = +svg.attr("height") - margin2.top - margin2.bottom;
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+  <script>
+    var margin = { top: 20, right: 10, bottom: 30, left: 40 },
+      width = 960 - margin.left - margin.right,
+      height = 500 - margin.top - margin.bottom;
 
-  var parseDate = d3.timeParse("%b %Y");
-
-  var x = d3.scaleTime().range([0, width]),
-    x2 = d3.scaleTime().range([0, width]),
-    y = d3.scaleLinear().range([height, 0]),
-    y2 = d3.scaleLinear().range([height2, 0]);
-
-  var xAxis = d3.axisBottom(x),
-    xAxis2 = d3.axisBottom(x2),
-    yAxis = d3.axisLeft(y);
-
-  var brush = d3
-    .brushX()
-    .extent([
-      [0, 0],
-      [width, height2],
-    ])
-    .on("brush end", brushed);
-
-  var zoom = d3
-    .zoom()
-    .scaleExtent([1, Infinity])
-    .translateExtent([
-      [0, 0],
-      [width, height],
-    ])
-    .extent([
-      [0, 0],
-      [width, height],
-    ])
-    .on("zoom", zoomed);
-
-  var area = d3
-    .area()
-    .curve(d3.curveMonotoneX)
-    .x(function (d) {
-      return x(d.date);
-    })
-    .y0(height)
-    .y1(function (d) {
-      return y(d.price);
-    });
-
-  var area2 = d3
-    .area()
-    .curve(d3.curveMonotoneX)
-    .x(function (d) {
-      return x2(d.date);
-    })
-    .y0(height2)
-    .y1(function (d) {
-      return y2(d.price);
-    });
-
-  svg
-    .append("defs")
-    .append("clipPath")
-    .attr("id", "clip")
-    .append("rect")
-    .attr("width", width)
-    .attr("height", height);
-
-  var focus = svg
-    .append("g")
-    .attr("class", "focus")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-  var context = svg
-    .append("g")
-    .attr("class", "context")
-    .attr("transform", "translate(" + margin2.left + "," + margin2.top + ")");
-
-  d3.csv("sp500.csv", type, function (error, data) {
-    if (error) throw error;
-
-    x.domain(
-      d3.extent(data, function (d) {
-        return d.date;
-      })
-    );
-    y.domain([
-      0,
-      d3.max(data, function (d) {
-        return d.price;
-      }),
-    ]);
-    x2.domain(x.domain());
-    y2.domain(y.domain());
-
-    focus.append("path").datum(data).attr("class", "area").attr("d", area);
-
-    focus
+    var svg = d3
+      .select("body")
+      .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
       .append("g")
-      .attr("class", "axis axis--x")
-      .attr("transform", "translate(0," + height + ")")
-      .call(xAxis);
+      .attr("transform", "translate(" + margin.left + " " + margin.top + ")");
 
-    focus.append("g").attr("class", "axis axis--y").call(yAxis);
+    var x = d3.scale.linear().range([0, width]);
 
-    context.append("path").datum(data).attr("class", "area").attr("d", area2);
+    var y = d3.scale.linear().range([height, 0]);
 
-    context
+    var xAxis = d3.svg.axis().scale(x).orient("bottom");
+
+    var yAxis = d3.svg.axis().scale(y).orient("left");
+
+    var xg = svg
       .append("g")
-      .attr("class", "axis axis--x")
-      .attr("transform", "translate(0," + height2 + ")")
-      .call(xAxis2);
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")");
 
-    context
-      .append("g")
-      .attr("class", "brush")
-      .call(brush)
-      .call(brush.move, x.range());
+    var yg = svg.append("g").attr("class", "y axis");
 
-    svg
-      .append("rect")
-      .attr("class", "zoom")
+    var chartArea = d3
+      .select("body")
+      .append("div")
+      .style("left", margin.left + "px")
+      .style("top", margin.top + "px");
+
+    var canvas = chartArea
+      .append("canvas")
+      .attr("width", width)
+      .attr("height", height);
+
+    var offscreen = d3
+      .select(document.createElement("canvas"))
+      .attr("width", width)
+      .attr("height", height);
+
+    var context = canvas.node().getContext("2d"),
+      picker = offscreen.node().getContext("2d");
+
+    context.fillStyle = "#f0f";
+
+    // Layer on top of canvas, example of selection details
+    var highlight = chartArea
+      .append("svg")
       .attr("width", width)
       .attr("height", height)
-      .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-      .call(zoom);
-  });
+      .append("circle")
+      .attr("r", 7)
+      .classed("hidden", true);
 
-  function brushed() {
-    if (d3.event.sourceEvent && d3.event.sourceEvent.type === "zoom") return; // ignore brush-by-zoom
-    var s = d3.event.selection || x2.range();
-    x.domain(s.map(x2.invert, x2));
-    focus.select(".area").attr("d", area);
-    focus.select(".axis--x").call(xAxis);
-    svg
-      .select(".zoom")
-      .call(
-        zoom.transform,
-        d3.zoomIdentity.scale(width / (s[1] - s[0])).translate(-s[0], 0)
+    redraw();
+
+    function redraw() {
+      // Randomize the scale
+      var scale = 1 + Math.floor(Math.random() * 10);
+
+      // Redraw axes
+      x.domain([0, scale]);
+      y.domain([0, scale]);
+      xg.call(xAxis);
+      yg.call(yAxis);
+
+      var points = randomPoints(scale),
+        colors = {};
+
+      // Update canvas
+      context.clearRect(0, 0, width, height);
+      picker.clearRect(0, 0, width, height);
+
+      points.forEach(function (p, i) {
+        // Space out the colors a bit
+        var color = getColor(i * 1000 + 1);
+        colors[color] = p;
+        picker.fillStyle = "rgb(" + color + ")";
+
+        context.beginPath();
+        picker.beginPath();
+
+        context.arc(x(p[0]), y(p[1]), 5, 0, 2 * Math.PI);
+        picker.arc(x(p[0]), y(p[1]), 5, 0, 2 * Math.PI);
+
+        context.fill();
+        picker.fill();
+      });
+
+      canvas.on("mousemove", function () {
+        var xy = d3.mouse(this);
+
+        // Get pixel from offscreen canvas
+        var color = picker.getImageData(xy[0], xy[1], 1, 1).data;
+        selected = colors[color.slice(0, 3).toString()];
+        console.log(selected);
+        highlight.classed("hidden", !selected);
+
+        // If it matches a point, highlight it
+        if (selected) {
+          highlight.attr("cx", x(selected[0])).attr("cy", y(selected[1]));
+        }
+      });
+    }
+
+    function randomPoints(scale) {
+      // Get points
+      return d3.range(1000).map(function (d) {
+        return [Math.random() * scale, Math.random() * scale];
+      });
+    }
+
+    function getColor(i) {
+      return (
+        (i % 256) +
+        "," +
+        (Math.floor(i / 256) % 256) +
+        "," +
+        (Math.floor(i / 65536) % 256)
       );
-  }
-
-  function zoomed() {
-    if (d3.event.sourceEvent && d3.event.sourceEvent.type === "brush") return; // ignore zoom-by-brush
-    var t = d3.event.transform;
-    x.domain(t.rescaleX(x2).domain());
-    focus.select(".area").attr("d", area);
-    focus.select(".axis--x").call(xAxis);
-    context.select(".brush").call(brush.move, [100, 300]);
-  }
-
-  function type(d) {
-    d.date = parseDate(d.date);
-    d.price = +d.price;
-    return d;
-  }
-</script>
+    }
+  </script>
+</body>

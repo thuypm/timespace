@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 import { Component, createRef } from "react";
 import LeftContent from "./LeftContent";
-import { rangeX, rangeY } from "./mock";
+import { dataScatter, rangeX, rangeY } from "./mock";
 import RightContent from "./RightContent";
 import React from "react";
 
@@ -10,7 +10,7 @@ let scrollLeft;
 let startY;
 let scrollTop;
 let isDown = false;
-class Chart extends Component {
+class DotChart extends Component {
   constructor(props) {
     super(props);
     this.parentRef = createRef();
@@ -21,7 +21,7 @@ class Chart extends Component {
     this.xScale = null;
     this.yScale = null;
     this.rightContentConfig = {
-      width: 1920,
+      width: 6000,
       paddingX: 64,
       paddingY: 32,
       height: 800,
@@ -57,8 +57,7 @@ class Chart extends Component {
 
   handleMouseMove = () => {
     var mouseX = d3.event.layerX || d3.event.offsetX;
-    var mouseY = d3.event.layerY || d3.event.offsety;
-    d3.event.preventDefault();
+    var mouseY = d3.event.layerY || d3.event.offsetY;
     if (isDown) {
       const scrollXEl = this.rightRef.current.axisAreaRef.current;
       const x = d3.event.pageX - scrollXEl.offsetLeft;
@@ -111,6 +110,58 @@ class Chart extends Component {
     this.hoverCtx.strokeStyle = "black";
     this.hoverCtx.stroke();
     this.hoverCtx.closePath();
+
+    //hightlight point
+    // const coordX = this.xScale.invert(mouseX - this.leftContentConfig.width);
+    // const coordY = this.yScale.invert(
+    //   mouseY - this.rightContentConfig.paddingY
+    // );
+    const realXCoord = mouseX - this.leftContentConfig.width;
+    const listHightLight = dataScatter.filter((point) => {
+      // console.log(this.xScale(point.x), )
+      return (
+        this.xScale(point.x) <= realXCoord + 4 &&
+        this.xScale(point.x) >= realXCoord - 4
+      );
+    });
+    // console.log(listHightLight);
+
+    this.hoverCtx.beginPath();
+    this.hoverCtx.fillStyle = "white";
+    this.hoverCtx.fillRect(mouseX + 10, mouseY - 100, 160, 200);
+    this.hoverCtx.closePath();
+
+    let h = 5;
+    listHightLight?.forEach((point) => {
+      this.hoverCtx.font = "16px Arial";
+      this.hoverCtx.fillStyle = "black";
+      // start a new path for drawing
+      this.hoverCtx.beginPath();
+      // paint an arc based on information from the DOM node
+      this.hoverCtx.fillText(
+        `Point: ${point.x}, ${point.y}`,
+        mouseX + 15,
+        mouseY - 80 + h
+      );
+      h += 24;
+      this.hoverCtx.closePath();
+
+      this.hoverCtx.fillStyle = "green";
+      this.hoverCtx.beginPath();
+      this.hoverCtx.arc(
+        this.xScale(point.x) + this.leftContentConfig.width,
+        this.yScale(point.y),
+        8,
+        0,
+        2 * Math.PI
+      );
+
+      // fill the point
+      this.hoverCtx.fill();
+      this.hoverCtx.closePath();
+    });
+
+    // this.rightRef.current.handleMouseMove(mouseX, mouseY);
   };
   handleMouseOut = () => {
     isDown = false;
@@ -173,4 +224,4 @@ class Chart extends Component {
   }
 }
 
-export default Chart;
+export default DotChart;

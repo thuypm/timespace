@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 import { Component, createRef } from "react";
-import { dataSourceLine, rangeX } from "./mock";
+import { dataScatter, dataSourceLine, rangeX } from "./mock";
 import React from "react";
 
 class RightContent extends Component {
@@ -52,6 +52,47 @@ class RightContent extends Component {
     this.axisCtx.closePath();
   };
 
+  drawScatter = (y) => {
+    const { xScale, yScale } = this.props;
+    const upperLineCtx = d3
+      .line()
+      .x((d) => xScale(d.x))
+      .y((d) => yScale(d.y) - 40)
+      .context(this.ctx);
+    const downlineCtx = d3
+      .line()
+      .x((d) => xScale(d.x))
+      .y((d) => yScale(d.y) + 20)
+      .context(this.ctx);
+    this.ctx.beginPath();
+    upperLineCtx([
+      { x: 0, y },
+      { x: rangeX[1], y },
+    ]);
+    downlineCtx([
+      { x: 0, y },
+      { x: rangeX[1], y },
+    ]);
+    this.ctx.lineWidth = 1;
+    this.ctx.strokeStyle = "black";
+    this.ctx.stroke();
+    this.ctx.closePath();
+
+    dataScatter.forEach((point) => {
+      this.ctx.fillStyle = "green";
+
+      // start a new path for drawing
+      this.ctx.beginPath();
+
+      // paint an arc based on information from the DOM node
+      this.ctx.arc(xScale(point.x), yScale(point.y) + 20, 4, 0, 2 * Math.PI);
+      this.ctx.arc(xScale(point.x), yScale(point.y) - 40, 4, 0, 2 * Math.PI);
+
+      // fill the point
+      this.ctx.fill();
+      this.ctx.closePath();
+    });
+  };
   drawLineData = () => {
     const { xScale, yScale } = this.props;
     this.ctx.fillStyle = "black";
@@ -61,24 +102,6 @@ class RightContent extends Component {
         .x((d) => xScale(d.x))
         .y((d) => yScale(d.y) - 22)
         .context(this.ctx);
-      //draw first line infomation
-      this.ctx.beginPath();
-      const firtLine = line[0];
-      lineCtx([
-        { x: 0, y: firtLine.range[0].y - 5 },
-        { x: firtLine.range[0].x, y: firtLine.range[0].y - 5 },
-      ]);
-      this.ctx.lineWidth = 1;
-      this.ctx.strokeStyle = "black";
-      this.ctx.stroke();
-      this.ctx.textAlign = "right";
-      this.ctx.textBaseline = "top";
-      this.ctx.fillText(
-        "OffsetTime:" + (firtLine.range[1].x - firtLine.range[0].x),
-        xScale(firtLine.range[0].x - 5),
-        yScale(firtLine.range[0].y - 10)
-      );
-      this.ctx.closePath();
 
       //draw all line
       line.forEach((linePart) => {
@@ -123,6 +146,7 @@ class RightContent extends Component {
         );
         this.ctx.closePath();
       });
+      this.drawScatter(line[0].range[0].y);
     });
   };
 
