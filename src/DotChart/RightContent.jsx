@@ -78,20 +78,20 @@ class RightContent extends Component {
     this.ctx.stroke();
     this.ctx.closePath();
 
-    dataScatter.forEach((point) => {
-      this.ctx.fillStyle = "green";
+    // dataScatter.forEach((point) => {
+    //   this.ctx.fillStyle = "green";
 
-      // start a new path for drawing
-      this.ctx.beginPath();
+    //   // start a new path for drawing
+    //   this.ctx.beginPath();
 
-      // paint an arc based on information from the DOM node
-      this.ctx.arc(xScale(point.x), yScale(point.y) + 20, 4, 0, 2 * Math.PI);
-      this.ctx.arc(xScale(point.x), yScale(point.y) - 40, 4, 0, 2 * Math.PI);
+    //   // paint an arc based on information from the DOM node
+    //   this.ctx.arc(xScale(point.x), yScale(point.y) + 20, 4, 0, 2 * Math.PI);
+    //   this.ctx.arc(xScale(point.x), yScale(point.y) - 40, 4, 0, 2 * Math.PI);
 
-      // fill the point
-      this.ctx.fill();
-      this.ctx.closePath();
-    });
+    //   // fill the point
+    //   this.ctx.fill();
+    //   this.ctx.closePath();
+    // });
   };
   drawLineData = () => {
     const { xScale, yScale } = this.props;
